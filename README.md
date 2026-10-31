@@ -6,8 +6,7 @@
 
 🎮 **Jogue online:** https://nickyrzzdev.github.io/game-web_triggerhell/
 
---- 
-  
+---
 
 ## 📖 Sobre o jogo
 
