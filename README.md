@@ -7,7 +7,7 @@
 🎮 **Jogue online:** https://nickyrzzdev.github.io/game-web_triggerhell/
 
 ---
-
+ 
 ## 📖 Sobre o jogo
 
 Você está preso num labirinto cheio de robôs. Atire para sobreviver, esquive no último segundo e não fique parado por muito tempo: um chefe indestrutível, inspirado no **Evil Otto** do clássico Berzerk, aparece para te caçar.
