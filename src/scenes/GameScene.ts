@@ -1,8 +1,10 @@
 import * as ex from 'excalibur'
+import { Player } from '../actors/Player'
 
 export class GameScene extends ex.Scene {
   override onInitialize(): void {
     // TODO(Gabriel #1)
+    this.add(new Player(400, 300))
     // TODO(Gabriel #2)
     // TODO(Erick #5)
     // TODO(Erick #6)
