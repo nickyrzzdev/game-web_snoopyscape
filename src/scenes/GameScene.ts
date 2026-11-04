@@ -1,11 +1,13 @@
 import * as ex from 'excalibur'
 import { Player } from '../actors/Player'
+import { Hud } from '../ui/Hud'
 
 export class GameScene extends ex.Scene {
   override onInitialize(): void {
     // TODO(Gabriel #1)
     this.add(new Player(400, 300))
     // TODO(Gabriel #2)
+    this.add(new Hud())
     // TODO(Erick #5)
     // TODO(Erick #6)
     // TODO(Erick #7)
