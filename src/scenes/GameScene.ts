@@ -2,6 +2,7 @@ import * as ex from 'excalibur'
 import { Player } from '../actors/Player'
 import {wall} from '../config/collisionGroups'
 import { Robot } from '../actors/Robot'
+import { Hud } from '../ui/Hud'
 
 export class GameScene extends ex.Scene {
   override onInitialize(): void {
@@ -12,8 +13,10 @@ export class GameScene extends ex.Scene {
     const robot1 = new Robot(200, 200, player)
     this.add(robot1)
 
-     const robot2 = new Robot(700, 200, player)
+    const robot2 = new Robot(700, 200, player)
     this.add(robot2)
+    this.add(new Hud())
+    
     // TODO(Erick #5)
     // TODO(Erick #6)
     // TODO(Erick #7)
