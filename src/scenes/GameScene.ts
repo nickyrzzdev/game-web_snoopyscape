@@ -1,5 +1,6 @@
 import * as ex from 'excalibur'
 import { Player } from '../actors/Player'
+import {wall} from '../config/collisionGroups'
 
 export class GameScene extends ex.Scene {
   override onInitialize(): void {
@@ -28,6 +29,8 @@ export class GameScene extends ex.Scene {
         width: 64,
         height: 64,
         color: ex.Color.fromHex('#ef4444'),
+        collisionType: ex.CollisionType.Fixed,
+        collisionGroup: wall,
       }),
     )
   }
