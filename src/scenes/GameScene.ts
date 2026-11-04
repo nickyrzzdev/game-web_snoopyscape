@@ -1,4 +1,5 @@
 import * as ex from 'excalibur'
+import { Resources } from '../assets/resources'
 import { Player } from '../actors/Player'
 import { Hud } from '../ui/Hud'
 
@@ -24,13 +25,12 @@ export class GameScene extends ex.Scene {
         }),
       }),
     )
-    this.add(
-      new ex.Actor({
-        pos: ex.vec(480, 270),
-        width: 64,
-        height: 64,
-        color: ex.Color.fromHex('#ef4444'),
-      }),
-    )
+    const assetPreview = new ex.Actor({
+      pos: ex.vec(480, 270),
+      width: 64,
+      height: 64,
+    })
+    assetPreview.graphics.use(Resources.player.toSprite())
+    this.add(assetPreview)
   }
 }
