@@ -1,4 +1,5 @@
 import * as ex from 'excalibur'
+import { Resources } from '../assets/resources'
 import { Player } from '../actors/Player'
 import {wall} from '../config/collisionGroups'
 import { Robot } from '../actors/Robot'
@@ -33,6 +34,13 @@ export class GameScene extends ex.Scene {
         }),
       }),
     )
+    const assetPreview = new ex.Actor({
+      pos: ex.vec(480, 270),
+      width: 64,
+      height: 64,
+    })
+    assetPreview.graphics.use(Resources.player.toSprite())
+    this.add(assetPreview)
     this.add(
       new ex.Actor({
         pos: ex.vec(480, 270),
