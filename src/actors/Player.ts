@@ -14,6 +14,8 @@ export class Player extends ex.Actor {
       width: 32,
       height: 32,
       color: ex.Color.Cyan,
+      collisionType: ex.CollisionType.Active,
+      collisionGroup: ex.CollisionGroupManager.groupByName('player')
     })
   }
 
