@@ -15,15 +15,10 @@ export class Bullet extends ex.Actor {
       collisionType: ex.CollisionType.Passive,
       collisionGroup: playerBullet,
     })
-    
-  this.on('collisionstart', () => {
-  this.kill()
-})
-  }
-
-
   
-
+  this.on('collisionstart', () => {this.kill()})
+  }
+  
   override onPreUpdate(engine: ex.Engine, elapsed: number): void {
     this.age += elapsed
 
