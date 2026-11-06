@@ -1,11 +1,12 @@
 import * as ex from 'excalibur'
+import { GAME_HEIGHT, GAME_WIDTH } from '../config/constants'
 
 export class MenuScene extends ex.Scene {
   override onInitialize(): void {
     this.add(
       new ex.Label({
         text: 'TriggerHell',
-        pos: ex.vec(480, 220),
+        pos: ex.vec(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 30),
         color: ex.Color.White,
         font: new ex.Font({
           size: 52,
@@ -18,7 +19,7 @@ export class MenuScene extends ex.Scene {
     this.add(
       new ex.Label({
         text: 'Clique ou aperte uma tecla para começar',
-        pos: ex.vec(480, 300),
+        pos: ex.vec(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50),
         color: ex.Color.fromHex('#cbd5e1'),
         font: new ex.Font({
           size: 22,
