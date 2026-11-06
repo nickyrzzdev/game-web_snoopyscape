@@ -10,9 +10,9 @@ export class Bullet extends ex.Actor {
 
   constructor(origin: ex.Vector, direction: ex.Vector) {
     super({
-      pos: origin,
+      pos: origin.clone(),
       radius: 4,
-      vel: direction.scale(BULLET_SPEED),
+      vel: direction.clone().scale(BULLET_SPEED),
       collisionType: ex.CollisionType.Passive,
       collisionGroup: playerBullet,
     })

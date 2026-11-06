@@ -173,10 +173,13 @@ export class Player extends ex.Actor {
     }
 
     if (leftMousePressed || this.isLeftMouseDown) {
+      const targetPos = engine.screen.screenToWorldCoordinates(
+        pointers.primary.lastScreenPos.clone(),
+      )
       this.pistol.tryShoot(
         engine.currentScene,
         this.pos,
-        pointers.primary.lastWorldPos,
+        targetPos,
       )
     }
   }
