@@ -12,7 +12,7 @@
 
 Você está preso num labirinto cheio de robôs. Atire para sobreviver, esquive no último segundo e não fique parado por muito tempo: um chefe indestrutível, inspirado no **Evil Otto** do clássico Berzerk, aparece para te caçar.
 
-O jogo mistura a tensão dos labirintos e robôs perseguidores de **Berzerk** com a mobilidade e o ritmo intenso de **Enter the Gungeon** (rolamento de esquiva com frames de invulnerabilidade e projéteis dinâmicos).
+O jogo tem a tensão dos labirintos e robôs perseguidores de **Berzerk**
 
 Projeto desenvolvido como **trabalho acadêmico** por uma equipe de 3 pessoas, com foco em boas práticas de versionamento (branches, Pull Requests e GitHub Projects) e deploy automático.
 
@@ -28,27 +28,23 @@ Legenda: ✅ pronto · 🚧 em desenvolvimento · 📝 planejado
 
 | Status | Funcionalidade |
 |:--:|---|
-| 📝 | Engine, cenas (Menu / Jogo / Game Over) e física top-down |
-| 📝 | Movimentação em 8 direções (WASD / setas) |
-| 📝 | Tiro do jogador com projéteis |
-| 📝 | Colisões (projétil × parede, projétil × inimigo, jogador × inimigo) |
-| 📝 | Robôs inimigos que perseguem o jogador |
+| ✅ | Engine, cenas (Menu / Jogo / Game Over) e física top-down |
+| ✅ | Movimentação em 8 direções (WASD / setas) |
+| ✅ | Tiro do jogador com projéteis |
+| ✅ | Colisões (projétil × parede, projétil × inimigo, jogador × inimigo) |
+| ✅ | Robôs inimigos que perseguem o jogador |
 | 📝 | Ondas de inimigos (spawner) |
 | 📝 | Esquiva (**dodge roll**) com frames de invulnerabilidade |
 | 📝 | Chefe indestrutível estilo **Evil Otto** |
-| 📝 | HUD com vida e pontuação |
+| ✅ | HUD com vida e pontuação |
 | 📝 | Efeitos sonoros e partículas |
 
-> Atualize esta tabela conforme as tarefas forem sendo concluídas.
-
----
-
-## 🕹️ Controles (previstos)
+## 🕹️ Controles
 
 | Ação | Tecla |
 |---|---|
 | Mover | `W` `A` `S` `D` ou setas |
-| Atirar | A definir (mouse ou teclas) |
+| Atirar | mouse esquerdo |
 | Esquivar (dodge roll) | A definir (ex.: `Espaço`) |
 
 ---
@@ -68,8 +64,8 @@ Legenda: ✅ pronto · 🚧 em desenvolvimento · 📝 planejado
 
 ```bash
 # 1. Clonar
-git clone https://github.com/nickyrzzdev/game-web_triggerhell.git
-cd game-web_triggerhell
+git clone https://github.com/nickyrzzdev/game-web_snoopyscape.git
+cd game-web_snoopyscape
 
 # 2. Instalar dependências
 npm install
@@ -85,7 +81,7 @@ Depois do `npm run dev`, abra o endereço mostrado no terminal (normalmente `htt
 
 ---
 
-## 📁 Estrutura de pastas (prevista)
+## 📁 Estrutura de pastas
 
 ```
 .
@@ -154,9 +150,3 @@ O deploy é automático: a cada merge na `main`, o **GitHub Actions** faz o buil
 - [Documentação do Vite](https://vitejs.dev/guide/)
 - [GitHub Pages](https://docs.github.com/pages)
 - [GitHub Projects](https://docs.github.com/issues/planning-and-tracking-with-projects)
-
----
-
-## 📄 Licença
-
-Projeto acadêmico. Defina aqui a licença, se for o caso (ex.: MIT).
