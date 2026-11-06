@@ -60,7 +60,6 @@ export const ENEMY_CELL = { width: 32, height: 48 }
 export const ENEMY_COLLIDER = { width: 20, height: 30 }
 export const ENEMY_GRAPHIC_OFFSET_Y = -(ENEMY_CELL.height - ENEMY_COLLIDER.height) / 2
 
-// chaves = `type` devolvido por generateRoom().enemySpawns[].type
 const ENEMY_VARIANTS: Record<string, { sheet: 'werewolves' | 'sharkmen'; variant: number }> = {
   lobo_escuro: { sheet: 'werewolves', variant: 0 },
   lobo_verde: { sheet: 'werewolves', variant: 1 },
