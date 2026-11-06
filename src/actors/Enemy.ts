@@ -7,11 +7,11 @@ import type { Difficulty, Room } from '../world/RoomGenerator';
 
 export interface EnemyOptions {
   pos: Vector;
-  type: string;           // 'lobo_escuro' | 'lobo_verde' | ... (enemySpawns[].type)
-  target: Actor;          // jogador
+  type: string;
+  target: Actor;
   room: Room;
-  difficulty: Difficulty; // room.difficulty
-  onPlayerHit?: () => void; // chamado quando um tiro deste inimigo acerta o jogador
+  difficulty: Difficulty;
+  onPlayerHit?: () => void;
 }
 
 const ENEMY_HEALTH: Record<string, number> = {
@@ -23,16 +23,12 @@ const ENEMY_HEALTH: Record<string, number> = {
   tubarao_verde: 4,
 }
 
-/**
- * Inimigo com sprite por direção e tiro estilo Berzerk.
- * Pode substituir o Robot.ts ou o Robot.ts pode passar a estender esta classe — o Copilot decide
- * olhando como a GameScene instancia os inimigos (manter os exports que ela usa).
- */
 export class Enemy extends Actor {
   private sprites!: EnemySprites;
   private fire = createFireState();
   private bullets = new Set<EnemyBullet>();
   health: number;
+  readonly scoreValue: number;
 
   constructor(private readonly o: EnemyOptions) {
     super({
@@ -42,6 +38,7 @@ export class Enemy extends Actor {
       collisionType: CollisionType.Active,
     });
     this.health = (ENEMY_HEALTH[o.type] ?? 1) + Math.floor((o.room.level - 1) / 4)
+    this.scoreValue = this.health * 10
   }
 
   override onInitialize(): void {
@@ -56,17 +53,17 @@ export class Enemy extends Actor {
   }
 
   override onPreUpdate(_engine: Engine, delta: number): void {
-    // 1) perseguir o jogador (simples; o Erick pode trocar pela IA de perseguição dele)
-    const toPlayer = this.o.target.pos.sub(this.pos);
-    const dir = toPlayer.size > 1 ? toPlayer.normalize() : Vector.Zero;
-    this.vel = dir.scale(this.o.difficulty.enemySpeed);
+    const dx = this.o.target.pos.x - this.pos.x
+    const dy = this.o.target.pos.y - this.pos.y
+    const distance = Math.hypot(dx, dy)
+    const speed = distance > 1 ? this.o.difficulty.enemySpeed / distance : 0
+    this.vel.setTo(dx * speed, dy * speed)
 
-    // 2) sprite pela direção do movimento
-    const { view, flip } = enemyViewFor(dir.x, dir.y);
-    this.graphics.use(this.sprites[view]);
-    this.graphics.flipHorizontal = flip;
+    const { view, flip } = enemyViewFor(dx, dy)
+    const sprite = this.sprites[view]
+    if (this.graphics.current !== sprite) this.graphics.use(sprite)
+    this.graphics.flipHorizontal = flip
 
-    // 3) atirar (só alinhado nas 8 direções, com linha de visão e limite de tiros ativos)
     const shot = stepEnemyFire(this.fire, {
       dtMs: delta,
       enemyPos: this.pos,

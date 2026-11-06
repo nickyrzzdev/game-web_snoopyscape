@@ -1,6 +1,12 @@
 import * as ex from 'excalibur'
 import { getInputDirection } from '../input/playerInput'
-import { PLAYER_SPEED } from '../config/constants'
+import {
+  PLAYER_BLINK_INTERVAL_MS,
+  PLAYER_HURT_MS,
+  PLAYER_INVULNERABILITY_MS,
+  PLAYER_MAX_HEALTH,
+  PLAYER_SPEED,
+} from '../config/constants'
 import { Pistol } from '../weapons/Pistol'
 import { Enemy } from './Enemy'
 import {
@@ -9,7 +15,6 @@ import {
   SNOOPY_GRAPHIC_OFFSET_Y,
 } from '../assets/sprites'
 import type { SnoopyAnimations } from '../assets/sprites'
-import { PLAYER_MAX_HEALTH } from '../config/constants'
 
 export class Player extends ex.Actor {
   private readonly pistol = new Pistol()
@@ -18,7 +23,6 @@ export class Player extends ex.Actor {
   private invulnerabilityMs = 0
   private hurtMs = 0
   private blinkMs = 0
-  private isVisible = true
   lives = PLAYER_MAX_HEALTH
 
   constructor(
@@ -38,6 +42,9 @@ export class Player extends ex.Actor {
 
   override onInitialize(): void {
     this.animations = createSnoopyAnimations()
+    this.animations.idle.reset()
+    this.animations.walk.reset()
+    this.animations.hurt.reset()
     this.graphics.use(this.animations.idle)
     this.graphics.offset = ex.vec(0, SNOOPY_GRAPHIC_OFFSET_Y)
     this.on('collisionstart', (event) => {
@@ -53,19 +60,16 @@ export class Player extends ex.Actor {
       this.hurtMs = Math.max(0, this.hurtMs - elapsed)
       this.blinkMs += elapsed
 
-      if (this.blinkMs >= 100) {
+      if (this.blinkMs >= PLAYER_BLINK_INTERVAL_MS) {
         this.blinkMs = 0
-        this.isVisible = !this.isVisible
-        this.graphics.opacity = this.isVisible ? 1 : 0.25
+        this.graphics.opacity = this.graphics.opacity === 1 ? 0.25 : 1
       }
 
       if (this.invulnerabilityMs === 0) {
         this.graphics.opacity = 1
-        this.isVisible = true
       }
     }
 
-    // Lê os controles a cada atualização e aplica a velocidade do jogador.
     const direction = getInputDirection(engine)
     this.vel = direction.scale(PLAYER_SPEED)
     const animation = direction.size > 0 ? this.animations.walk : this.animations.idle
@@ -78,8 +82,10 @@ export class Player extends ex.Actor {
       this.graphics.use(animation)
     }
 
-    const aimDirection = engine.input.pointers.primary.lastWorldPos.sub(this.pos)
-    const facingX = aimDirection.size > 0 ? aimDirection.x : direction.x
+    const pointer = engine.input.pointers.primary.lastWorldPos
+    const facingX = pointer.x !== this.pos.x || pointer.y !== this.pos.y
+      ? pointer.x - this.pos.x
+      : direction.x
     if (facingX !== 0) {
       this.graphics.flipHorizontal = facingX < 0
     }
@@ -94,10 +100,9 @@ export class Player extends ex.Actor {
 
     this.lives -= 1
     this.onLivesChanged?.(this.lives)
-    this.invulnerabilityMs = 1500
-    this.hurtMs = 350
+    this.invulnerabilityMs = PLAYER_INVULNERABILITY_MS
+    this.hurtMs = PLAYER_HURT_MS
     this.blinkMs = 0
-    this.isVisible = false
     this.graphics.opacity = 0.25
 
     if (this.lives === 0) {
@@ -105,7 +110,7 @@ export class Player extends ex.Actor {
     }
   }
 
-  handleShooting(engine: ex.Engine): void {
+  private handleShooting(engine: ex.Engine): void {
     const pointers = engine.input.pointers
     const leftMousePressed = pointers.currentFrameDown.some(
       (event) =>

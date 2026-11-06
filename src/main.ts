@@ -6,7 +6,7 @@ import { GameOverScene } from './scenes/GameOverScene'
 import { GameScene } from './scenes/GameScene'
 import { MenuScene } from './scenes/MenuScene'
 
-export const game = new ex.Engine({
+const game = new ex.Engine({
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   displayMode: ex.DisplayMode.FitScreen,
