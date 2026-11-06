@@ -1,22 +1,19 @@
 import { Scene, TileMap, vec } from 'excalibur';
-import { createFloorSprites, createTorchAnimation, createWallSprite, TILE } from '../assets/sprites';
+import { TILE_SIZE } from '../config/constants';
+import { createFloorSprites, createTorchAnimation, createWallSprite } from '../assets/sprites';
 import type { Room } from './RoomGenerator';
 
-/**
- * Cria o chão e as paredes da sala em um único TileMap (paredes = tiles sólidos).
- * Se o jogo já usa atores de parede para colisão, o Copilot pode manter isso e usar o TileMap só como visual.
- */
 export function buildRoomTileMap(scene: Scene, room: Room, seed = room.seed): TileMap {
   const tm = new TileMap({
     pos: vec(0, 0),
-    tileWidth: TILE,
-    tileHeight: TILE,
+    tileWidth: TILE_SIZE,
+    tileHeight: TILE_SIZE,
     columns: room.cols,
     rows: room.rows,
   });
   tm.z = -10;
   const floors = createFloorSprites();
-  let s = seed >>> 0; // RNG simples para escolher a variação do chão sempre igual na mesma sala
+  let s = seed >>> 0;
   const next = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
   for (let r = 0; r < room.rows; r++) {
     for (let c = 0; c < room.cols; c++) {

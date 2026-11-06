@@ -1,17 +1,16 @@
-// Gerador de salas estilo Berzerk: níveis infinitos, labirintos por "postes" e segmentos de parede.
 // Sem dependência do Excalibur: devolve só dados (grid de paredes, saídas, spawns, dificuldade).
-// Uso: const room = generateRoom({ level: 3, entrySide: 'left', seed: 12345 });
+import { TILE_SIZE } from '../config/constants'
 
 export type Side = 'top' | 'bottom' | 'left' | 'right';
 export interface Cell { col: number; row: number }
 
 export interface Difficulty {
-  enemyCount: number;      // quantos inimigos na sala
-  enemyFireCooldownMs: number; // intervalo mínimo entre tiros de cada inimigo
+  enemyCount: number;
+  enemyFireCooldownMs: number;
   enemyBulletSpeed: number;    // px/s
   enemySpeed: number;          // px/s
   wallDensity: number;         // 0..1, chance de cada poste gerar uma parede
-  enemyTypes: string[];        // tipos liberados neste nível
+  enemyTypes: string[];
 }
 
 export interface Room {
@@ -29,12 +28,12 @@ export interface Room {
 }
 
 export interface RoomOptions {
-  level: number;               // 1, 2, 3... (infinito)
-  entrySide?: Side;            // lado por onde o jogador entra (padrão: 'left')
-  seed?: number;               // se omitido, usa o nível (sala sempre igual para o mesmo nível)
-  cols?: number;               // padrão 20
-  rows?: number;               // padrão 12
-  tileSize?: number;           // padrão 32
+  level: number;
+  entrySide?: Side;
+  seed?: number;
+  cols?: number;
+  rows?: number;
+  tileSize?: number;
 }
 
 // RNG determinístico (mulberry32)
@@ -68,6 +67,13 @@ export function difficultyFor(level: number): Difficulty {
 }
 
 const DIRS: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const SIDES: Side[] = ['top', 'bottom', 'left', 'right'];
+const INWARD: Record<Side, Cell> = {
+  left: { col: 1, row: 0 },
+  right: { col: -1, row: 0 },
+  top: { col: 0, row: 1 },
+  bottom: { col: 0, row: -1 },
+};
 const opposite: Record<Side, Side> = { left: 'right', right: 'left', top: 'bottom', bottom: 'top' };
 
 function exitCells(side: Side, cols: number, rows: number): Cell[] {
@@ -80,7 +86,6 @@ function exitCells(side: Side, cols: number, rows: number): Cell[] {
   }
 }
 
-// flood fill a partir de uma lista de células livres; devolve quantas células livres foram alcançadas
 function reachable(walls: boolean[][], starts: Cell[]): Set<number> {
   const rows = walls.length, cols = walls[0].length;
   const seen = new Set<number>();
@@ -96,7 +101,7 @@ function reachable(walls: boolean[][], starts: Cell[]): Set<number> {
 }
 
 export function generateRoom(opts: RoomOptions): Room {
-  const cols = opts.cols ?? 20, rows = opts.rows ?? 12, tileSize = opts.tileSize ?? 32;
+  const cols = opts.cols ?? 20, rows = opts.rows ?? 12, tileSize = opts.tileSize ?? TILE_SIZE;
   const level = Math.max(1, opts.level);
   const seed = opts.seed ?? level * 7919;
   const entrySide = opts.entrySide ?? 'left';
@@ -104,56 +109,61 @@ export function generateRoom(opts: RoomOptions): Room {
   const diff = difficultyFor(level);
 
   const walls: boolean[][] = Array.from({ length: rows }, () => Array<boolean>(cols).fill(false));
-  // moldura
   for (let c = 0; c < cols; c++) { walls[0][c] = true; walls[rows - 1][c] = true; }
   for (let r = 0; r < rows; r++) { walls[r][0] = true; walls[r][cols - 1] = true; }
   // saídas nos 4 lados (Berzerk: sempre dá para sair por qualquer lado)
-  const sides: Side[] = ['top', 'bottom', 'left', 'right'];
-  const exits = sides.map((side) => ({ side, cells: exitCells(side, cols, rows) }));
+  const exits = SIDES.map((side) => ({ side, cells: exitCells(side, cols, rows) }));
   for (const e of exits) for (const c of e.cells) walls[c.row][c.col] = false;
 
   // espaço livre garantido na frente de cada saída (3 tiles) para o jogador nunca ficar preso
   const keepFree = new Set<number>();
   for (const e of exits) for (const c of e.cells) {
-    const [dx, dy] = e.side === 'left' ? [1, 0] : e.side === 'right' ? [-1, 0] : e.side === 'top' ? [0, 1] : [0, -1];
-    for (let i = 0; i <= 3; i++) keepFree.add((c.row + dy * i) * cols + (c.col + dx * i));
-  }
-
-  // postes em grade (a cada 3 tiles) + segmentos aleatórios de 2 a 4 tiles
-  const posts: Cell[] = [];
-  for (let r = 3; r <= rows - 4; r += 3) for (let c = 3; c <= cols - 4; c += 3) posts.push({ col: c, row: r });
-  const freeStarts = exits[0].cells; // qualquer saída serve de ponto de partida (todas ligam à moldura livre)
-  for (const p of posts) {
-    if (rand() > diff.wallDensity) continue;
-    const [dx, dy] = DIRS[Math.floor(rand() * 4)];
-    const len = 2 + Math.floor(rand() * 3);
-    const added: Cell[] = [{ col: p.col, row: p.row }];
-    for (let i = 1; i <= len; i++) added.push({ col: p.col + dx * i, row: p.row + dy * i });
-    const touched: Cell[] = [];
-    for (const c of added) {
-      if (c.col < 1 || c.row < 1 || c.col > cols - 2 || c.row > rows - 2) continue;
-      if (keepFree.has(c.row * cols + c.col) || walls[c.row][c.col]) continue;
-      walls[c.row][c.col] = true; touched.push(c);
+    const direction = INWARD[e.side];
+    for (let i = 0; i <= 3; i++) {
+      keepFree.add((c.row + direction.row * i) * cols + c.col + direction.col * i);
     }
-    // se isolar alguma parte da sala, desfaz o segmento
-    const totalFree = walls.flat().filter((w) => !w).length;
-    if (reachable(walls, freeStarts).size !== totalFree) for (const c of touched) walls[c.row][c.col] = false;
   }
 
-  // jogador nasce perto do lado de entrada
+  const freeStarts = exits[0].cells; // qualquer saída serve de ponto de partida (todas ligam à moldura livre)
+  for (let row = 3; row <= rows - 4; row += 3) {
+    for (let col = 3; col <= cols - 4; col += 3) {
+      if (rand() > diff.wallDensity) continue;
+      const [dx, dy] = DIRS[Math.floor(rand() * DIRS.length)];
+      const len = 2 + Math.floor(rand() * 3);
+      const added: Cell[] = [{ col, row }];
+      for (let i = 1; i <= len; i++) added.push({ col: col + dx * i, row: row + dy * i });
+      const touched: Cell[] = [];
+      for (const c of added) {
+        if (c.col < 1 || c.row < 1 || c.col > cols - 2 || c.row > rows - 2) continue;
+        if (keepFree.has(c.row * cols + c.col) || walls[c.row][c.col]) continue;
+        walls[c.row][c.col] = true;
+        touched.push(c);
+      }
+      const totalFree = walls.flat().filter((wall) => !wall).length;
+      if (reachable(walls, freeStarts).size !== totalFree) {
+        for (const cell of touched) walls[cell.row][cell.col] = false;
+      }
+    }
+  }
+
   const front = exits.find((e) => e.side === entrySide)!;
-  const [fx, fy] = entrySide === 'left' ? [2, 0] : entrySide === 'right' ? [-2, 0] : entrySide === 'top' ? [0, 2] : [0, -2];
-  const playerSpawn: Cell = { col: front.cells[0].col + fx, row: front.cells[0].row + fy };
+  const direction = INWARD[entrySide];
+  const playerSpawn: Cell = {
+    col: front.cells[0].col + direction.col * 2,
+    row: front.cells[0].row + direction.row * 2,
+  };
   walls[playerSpawn.row][playerSpawn.col] = false;
 
-  // inimigos em células livres longe do jogador (mín. 7 tiles)
   const free: Cell[] = [];
   for (let r = 1; r < rows - 1; r++) for (let c = 1; c < cols - 1; c++) {
     if (walls[r][c]) continue;
     if (Math.hypot(c - playerSpawn.col, r - playerSpawn.row) < 7) continue;
     free.push({ col: c, row: r });
   }
-  for (let i = free.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [free[i], free[j]] = [free[j], free[i]]; }
+  for (let i = free.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [free[i], free[j]] = [free[j], free[i]];
+  }
   const enemySpawns = free.slice(0, diff.enemyCount).map((cell) => ({
     cell, type: diff.enemyTypes[Math.floor(rand() * diff.enemyTypes.length)],
   }));
@@ -164,7 +174,6 @@ export function generateRoom(opts: RoomOptions): Room {
 // Lado oposto: se o jogador saiu pela direita, a próxima sala começa com entrySide = 'left'
 export function nextEntrySide(exitedThrough: Side): Side { return opposite[exitedThrough]; }
 
-// ---- Mira dos inimigos (Berzerk: só atiram nas 8 direções) ----
 export interface Vec { x: number; y: number }
 /** Devolve a direção (unitária) em 8 sentidos mais próxima do jogador, ou null se não estiver razoavelmente alinhado. */
 export function aim8(from: Vec, to: Vec, tolerancePx = 20): Vec | null {
