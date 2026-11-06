@@ -1,5 +1,6 @@
 {
   "name": "game-web-triggerhell",
+  "description": "Jogo 2D de ação com Snoopy em salas-labirinto.",
   "private": true,
   "version": "0.0.0",
   "type": "module",

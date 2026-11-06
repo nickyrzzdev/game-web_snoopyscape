@@ -1,4 +1,4 @@
-# 🔫 TriggerHell
+# 🔫 SnoopyScape
 
 > Top-down shooter 2D em HTML5 inspirado em **Berzerk** e **Enter the Gungeon**, feito com **Excalibur.js** e **TypeScript**.
 
