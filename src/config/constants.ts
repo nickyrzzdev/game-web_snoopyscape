@@ -1,6 +1,10 @@
-export const GAME_WIDTH = 960
-export const GAME_HEIGHT = 540
+export const GAME_WIDTH = 640
+export const GAME_HEIGHT = 384
+export const TILE_SIZE = 32
 export const PLAYER_SPEED = 200
+export const PLAYER_INVULNERABILITY_MS = 1500
+export const PLAYER_HURT_MS = 350
+export const PLAYER_BLINK_INTERVAL_MS = 100
 export const BULLET_SPEED = 500
 export const BULLET_LIFETIME_MS = 1500
 export const SHOOT_COOLDOWN_MS = 1000
