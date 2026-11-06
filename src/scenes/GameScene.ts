@@ -14,7 +14,6 @@ export class GameScene extends ex.Scene {
   private player?: Player
   private hud?: Hud
   private tileMap?: ex.TileMap
-  private enemies = new Set<Enemy>()
   private lockedDoors: ex.Actor[] = []
   private portals: ex.Actor[] = []
   private exitsOpen = false
@@ -28,7 +27,6 @@ export class GameScene extends ex.Scene {
     this.player = undefined
     this.hud = undefined
     this.tileMap = undefined
-    this.enemies.clear()
     this.lockedDoors = []
     this.portals = []
     this.exitsOpen = false
@@ -37,7 +35,7 @@ export class GameScene extends ex.Scene {
   }
 
   override onPreUpdate(_engine: ex.Engine, _elapsed: number): void {
-    if (!this.player || !this.room || this.enemies.size > 0) {
+    if (!this.player || !this.room) {
       return
     }
 
@@ -47,8 +45,17 @@ export class GameScene extends ex.Scene {
     }
   }
 
+  onEnemyKilled(enemy: Enemy): void {
+    this.score += enemy.scoreValue
+    this.hud?.setScore(this.score)
+  }
+
+  onRoomCleared(): void {
+    this.openExits()
+  }
+
   private createRoom(entrySide: Side): void {
-    const room = generateRoom({ level: this.level, entrySide })
+    const room = generateRoom({ seed: this.level * 7919, entrySide })
     this.room = room
     this.tileMap = buildRoomTileMap(this, room)
     this.exitsOpen = false
@@ -73,35 +80,9 @@ export class GameScene extends ex.Scene {
     }
     this.hud?.setLevel(this.level)
 
-    this.enemies = new Set()
-    for (const spawnPoint of room.enemySpawns) {
-      const enemy = new Enemy({
-        pos: ex.vec(
-          spawnPoint.cell.col * room.tileSize + room.tileSize / 2,
-          spawnPoint.cell.row * room.tileSize + room.tileSize / 2,
-        ),
-        target: this.player,
-        room,
-        difficulty: room.difficulty,
-        type: spawnPoint.type,
-        onPlayerHit: () => this.player?.takeDamage(),
-      })
-      this.enemies.add(enemy)
-      enemy.on('kill', () => {
-        this.enemies.delete(enemy)
-        this.score += enemy.scoreValue
-        this.hud?.setScore(this.score)
-        if (this.enemies.size === 0 && !this.changingRoom) {
-          this.openExits()
-        }
-      })
-      this.add(enemy)
-    }
-
     this.addLockedDoors(room)
-    if (this.enemies.size === 0) {
-      this.openExits()
-    }
+    // Erick deve chamar este método quando a onda terminar.
+    this.onRoomCleared()
   }
 
   private addLockedDoors(room: Room): void {
@@ -192,7 +173,6 @@ export class GameScene extends ex.Scene {
     this.level += 1
     this.tileMap?.kill()
     this.tileMap = undefined
-    this.enemies.clear()
     for (const door of this.lockedDoors) {
       door.kill()
     }

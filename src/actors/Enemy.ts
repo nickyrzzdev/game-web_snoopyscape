@@ -3,14 +3,16 @@ import { ENEMY_COLLIDER, ENEMY_GRAPHIC_OFFSET_Y, createEnemySprites, enemyViewFo
 import type { EnemySprites } from '../assets/sprites';
 import { EnemyBullet } from './EnemyBullet';
 import { createFireState, stepEnemyFire } from '../systems/enemyFire';
-import type { Difficulty, Room } from '../world/RoomGenerator';
+import type { Room } from '../world/RoomGenerator';
 
 export interface EnemyOptions {
   pos: Vector;
   type: string;
   target: Actor;
   room: Room;
-  difficulty: Difficulty;
+  enemySpeed: number;
+  enemyBulletSpeed: number;
+  enemyFireCooldownMs: number;
   onPlayerHit?: () => void;
 }
 
@@ -37,7 +39,7 @@ export class Enemy extends Actor {
       height: ENEMY_COLLIDER.height,
       collisionType: CollisionType.Active,
     });
-    this.health = (ENEMY_HEALTH[o.type] ?? 1) + Math.floor((o.room.level - 1) / 4)
+    this.health = ENEMY_HEALTH[o.type] ?? 1
     this.scoreValue = this.health * 10
   }
 
@@ -56,7 +58,7 @@ export class Enemy extends Actor {
     const dx = this.o.target.pos.x - this.pos.x
     const dy = this.o.target.pos.y - this.pos.y
     const distance = Math.hypot(dx, dy)
-    const speed = distance > 1 ? this.o.difficulty.enemySpeed / distance : 0
+    const speed = distance > 1 ? this.o.enemySpeed / distance : 0
     this.vel.setTo(dx * speed, dy * speed)
 
     const { view, flip } = enemyViewFor(dx, dy)
@@ -68,7 +70,7 @@ export class Enemy extends Actor {
       dtMs: delta,
       enemyPos: this.pos,
       playerPos: this.o.target.pos,
-      difficulty: this.o.difficulty,
+      enemyFireCooldownMs: this.o.enemyFireCooldownMs,
       room: this.o.room,
       activeEnemyBullets: this.bullets.size,
     });
@@ -76,7 +78,7 @@ export class Enemy extends Actor {
       const b = new EnemyBullet({
         pos: this.pos.clone(),
         dir: shot,
-        speed: this.o.difficulty.enemyBulletSpeed,
+        speed: this.o.enemyBulletSpeed,
         target: this.o.target,
         room: this.o.room,
         onHitPlayer: () => this.o.onPlayerHit?.(),

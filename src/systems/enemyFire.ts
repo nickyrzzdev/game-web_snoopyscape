@@ -1,8 +1,8 @@
 // Lógica PURA do tiro dos inimigos (sem Excalibur) para ser testável.
 // Regra estilo Berzerk: o inimigo só atira se o jogador estiver alinhado em uma das 8 direções,
-// sem parede no meio e com o cooldown zerado. Dificuldade vem de difficultyFor(level) (RoomGenerator).
+// sem parede no meio e com o cooldown zerado.
 import { aim8, hasLineOfSight } from '../world/RoomGenerator';
-import type { Difficulty, Room, Vec } from '../world/RoomGenerator';
+import type { Room, Vec } from '../world/RoomGenerator';
 
 export interface EnemyFireState { cooldownMs: number }
 
@@ -15,7 +15,7 @@ export interface FireContext {
   dtMs: number;
   enemyPos: Vec;
   playerPos: Vec;
-  difficulty: Pick<Difficulty, 'enemyFireCooldownMs'>;
+  enemyFireCooldownMs: number;
   room?: Room;              // se informado, bloqueia tiro através de parede
   activeEnemyBullets?: number; // quantos tiros inimigos existem agora
   maxEnemyBullets?: number;    // limite global (Berzerk clássico: poucos tiros na tela). Padrão: 4
@@ -31,6 +31,6 @@ export function stepEnemyFire(state: EnemyFireState, ctx: FireContext): Vec | nu
   if (ctx.room && !hasLineOfSight(ctx.room, ctx.enemyPos, ctx.playerPos)) return null;
   if ((ctx.activeEnemyBullets ?? 0) >= (ctx.maxEnemyBullets ?? 4)) return null;
   const rand = ctx.rand ?? Math.random;
-  state.cooldownMs = ctx.difficulty.enemyFireCooldownMs * (0.8 + rand() * 0.4);
+  state.cooldownMs = ctx.enemyFireCooldownMs * (0.8 + rand() * 0.4);
   return dir;
 }

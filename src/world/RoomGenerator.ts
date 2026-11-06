@@ -1,20 +1,10 @@
-// Sem dependência do Excalibur: devolve só dados (grid de paredes, saídas, spawns, dificuldade).
+// Sem dependência do Excalibur: devolve só dados do layout da sala.
 import { TILE_SIZE } from '../config/constants'
 
 export type Side = 'top' | 'bottom' | 'left' | 'right';
 export interface Cell { col: number; row: number }
 
-export interface Difficulty {
-  enemyCount: number;
-  enemyFireCooldownMs: number;
-  enemyBulletSpeed: number;    // px/s
-  enemySpeed: number;          // px/s
-  wallDensity: number;         // 0..1, chance de cada poste gerar uma parede
-  enemyTypes: string[];
-}
-
 export interface Room {
-  level: number;
   seed: number;
   cols: number;
   rows: number;
@@ -23,12 +13,9 @@ export interface Room {
   exits: { side: Side; cells: Cell[] }[]; // vão de 2 tiles em cada lado (exceto onde o jogador entrou: fica fechado até limpar a sala, decisão do jogo)
   entrySide: Side;
   playerSpawn: Cell;
-  enemySpawns: { cell: Cell; type: string }[];
-  difficulty: Difficulty;
 }
 
 export interface RoomOptions {
-  level: number;
   entrySide?: Side;
   seed?: number;
   cols?: number;
@@ -48,26 +35,9 @@ function rng(seed: number) {
   };
 }
 
-export function difficultyFor(level: number): Difficulty {
-  const L = Math.max(1, level);
-  const types = ['lobo_escuro'];
-  if (L >= 3) types.push('lobo_verde');
-  if (L >= 5) types.push('lobo_marrom');
-  if (L >= 8) types.push('tubarao_cinza');
-  if (L >= 11) types.push('tubarao_azul');
-  if (L >= 14) types.push('tubarao_verde');
-  return {
-    enemyCount: Math.min(2 + Math.floor(L * 0.8), 12),
-    enemyFireCooldownMs: Math.max(300, 2400 - L * 120),
-    enemyBulletSpeed: Math.min(110 + L * 8, 240),
-    enemySpeed: Math.min(30 + L * 3, 90),
-    wallDensity: Math.min(0.75 + L * 0.02, 0.95),
-    enemyTypes: types,
-  };
-}
-
 const DIRS: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 const SIDES: Side[] = ['top', 'bottom', 'left', 'right'];
+const WALL_DENSITY = 0.77;
 const INWARD: Record<Side, Cell> = {
   left: { col: 1, row: 0 },
   right: { col: -1, row: 0 },
@@ -102,11 +72,9 @@ function reachable(walls: boolean[][], starts: Cell[]): Set<number> {
 
 export function generateRoom(opts: RoomOptions): Room {
   const cols = opts.cols ?? 20, rows = opts.rows ?? 12, tileSize = opts.tileSize ?? TILE_SIZE;
-  const level = Math.max(1, opts.level);
-  const seed = opts.seed ?? level * 7919;
+  const seed = opts.seed ?? 7919;
   const entrySide = opts.entrySide ?? 'left';
   const rand = rng(seed);
-  const diff = difficultyFor(level);
 
   const walls: boolean[][] = Array.from({ length: rows }, () => Array<boolean>(cols).fill(false));
   for (let c = 0; c < cols; c++) { walls[0][c] = true; walls[rows - 1][c] = true; }
@@ -127,7 +95,7 @@ export function generateRoom(opts: RoomOptions): Room {
   const freeStarts = exits[0].cells; // qualquer saída serve de ponto de partida (todas ligam à moldura livre)
   for (let row = 3; row <= rows - 4; row += 3) {
     for (let col = 3; col <= cols - 4; col += 3) {
-      if (rand() > diff.wallDensity) continue;
+      if (rand() > WALL_DENSITY) continue;
       const [dx, dy] = DIRS[Math.floor(rand() * DIRS.length)];
       const len = 2 + Math.floor(rand() * 3);
       const added: Cell[] = [{ col, row }];
@@ -154,28 +122,14 @@ export function generateRoom(opts: RoomOptions): Room {
   };
   walls[playerSpawn.row][playerSpawn.col] = false;
 
-  const free: Cell[] = [];
-  for (let r = 1; r < rows - 1; r++) for (let c = 1; c < cols - 1; c++) {
-    if (walls[r][c]) continue;
-    if (Math.hypot(c - playerSpawn.col, r - playerSpawn.row) < 7) continue;
-    free.push({ col: c, row: r });
-  }
-  for (let i = free.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [free[i], free[j]] = [free[j], free[i]];
-  }
-  const enemySpawns = free.slice(0, diff.enemyCount).map((cell) => ({
-    cell, type: diff.enemyTypes[Math.floor(rand() * diff.enemyTypes.length)],
-  }));
-
-  return { level, seed, cols, rows, tileSize, walls, exits, entrySide, playerSpawn, enemySpawns, difficulty: diff };
+  return { seed, cols, rows, tileSize, walls, exits, entrySide, playerSpawn };
 }
 
 // Lado oposto: se o jogador saiu pela direita, a próxima sala começa com entrySide = 'left'
 export function nextEntrySide(exitedThrough: Side): Side { return opposite[exitedThrough]; }
 
 export interface Vec { x: number; y: number }
-/** Devolve a direção (unitária) em 8 sentidos mais próxima do jogador, ou null se não estiver razoavelmente alinhado. */
+/** Devolve a direção mais próxima em 8 sentidos, ou null se o jogador não estiver alinhado. */
 export function aim8(from: Vec, to: Vec, tolerancePx = 20): Vec | null {
   const dx = to.x - from.x, dy = to.y - from.y;
   const adx = Math.abs(dx), ady = Math.abs(dy);
