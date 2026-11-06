@@ -7,7 +7,7 @@ export class Pistol {
 
   tryShoot(scene: ex.Scene, origin: ex.Vector, targetPos: ex.Vector): boolean {
     const direction = targetPos.sub(origin)
-    if (direction.x === 0 && direction.y === 0) {
+    if (direction.magnitude === 0) {
       return false
     }
 
@@ -17,7 +17,7 @@ export class Pistol {
     }
 
     this.lastShotAt = now
-    scene.add(new Bullet(origin, direction.normalize()))
+    scene.add(new Bullet(origin.clone(), direction.normalize()))
     return true
   }
 }
