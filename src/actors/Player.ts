@@ -16,13 +16,15 @@ import {
 } from '../assets/sprites'
 import type { SnoopyAnimations } from '../assets/sprites'
 
+type PlayerState = 'idle' | 'walk' | 'hurt' | 'dead'
+
 export class Player extends ex.Actor {
   private readonly pistol = new Pistol()
   private isLeftMouseDown = false
   private animations!: SnoopyAnimations
-  private invulnerabilityMs = 0
-  private hurtMs = 0
-  private blinkMs = 0
+  private state: PlayerState = 'idle'
+  private stateElapsed = 0
+  private blinkElapsed = 0
   lives = PLAYER_MAX_HEALTH
 
   constructor(
@@ -55,33 +57,42 @@ export class Player extends ex.Actor {
   }
 
   override onPreUpdate(engine: ex.Engine, elapsed: number): void {
-    if (this.invulnerabilityMs > 0) {
-      this.invulnerabilityMs = Math.max(0, this.invulnerabilityMs - elapsed)
-      this.hurtMs = Math.max(0, this.hurtMs - elapsed)
-      this.blinkMs += elapsed
-
-      if (this.blinkMs >= PLAYER_BLINK_INTERVAL_MS) {
-        this.blinkMs = 0
-        this.graphics.opacity = this.graphics.opacity === 1 ? 0.25 : 1
+    switch (this.state) {
+      case 'idle':
+      case 'walk': {
+        const direction = this.updateMovement(engine)
+        this.setState(direction.size > 0 ? 'walk' : 'idle')
+        this.handleShooting(engine)
+        break
       }
+      case 'hurt': {
+        const direction = this.updateMovement(engine)
+        this.stateElapsed += elapsed
+        this.blinkElapsed += elapsed
+        if (this.blinkElapsed >= PLAYER_BLINK_INTERVAL_MS) {
+          this.blinkElapsed = 0
+          this.graphics.opacity = this.graphics.opacity === 1 ? 0.25 : 1
+        }
 
-      if (this.invulnerabilityMs === 0) {
-        this.graphics.opacity = 1
+        if (this.stateElapsed >= PLAYER_HURT_MS) {
+          this.useMovementAnimation(direction)
+        }
+        if (this.stateElapsed >= PLAYER_INVULNERABILITY_MS) {
+          this.graphics.opacity = 1
+          this.setState(direction.size > 0 ? 'walk' : 'idle')
+        }
+        this.handleShooting(engine)
+        break
       }
+      case 'dead':
+        this.vel = ex.Vector.Zero
+        break
     }
+  }
 
+  private updateMovement(engine: ex.Engine): ex.Vector {
     const direction = getInputDirection(engine)
     this.vel = direction.scale(PLAYER_SPEED)
-    const animation = direction.size > 0 ? this.animations.walk : this.animations.idle
-    if (this.hurtMs > 0) {
-      if (this.graphics.current !== this.animations.hurt) {
-        this.animations.hurt.reset()
-        this.graphics.use(this.animations.hurt)
-      }
-    } else if (this.graphics.current !== animation) {
-      this.graphics.use(animation)
-    }
-
     const pointer = engine.input.pointers.primary.lastWorldPos
     const facingX = pointer.x !== this.pos.x || pointer.y !== this.pos.y
       ? pointer.x - this.pos.x
@@ -89,25 +100,55 @@ export class Player extends ex.Actor {
     if (facingX !== 0) {
       this.graphics.flipHorizontal = facingX < 0
     }
+    return direction
+  }
 
-    this.handleShooting(engine)
+  private useMovementAnimation(direction: ex.Vector): void {
+    const animation = direction.size > 0 ? this.animations.walk : this.animations.idle
+    if (this.graphics.current !== animation) {
+      this.graphics.use(animation)
+    }
+  }
+
+  private setState(state: PlayerState): void {
+    if (this.state === state) {
+      return
+    }
+
+    this.state = state
+    switch (state) {
+      case 'idle':
+        if (this.graphics.current !== this.animations.idle) {
+          this.graphics.use(this.animations.idle)
+        }
+        break
+      case 'walk':
+        if (this.graphics.current !== this.animations.walk) {
+          this.graphics.use(this.animations.walk)
+        }
+        break
+      case 'hurt':
+        this.stateElapsed = 0
+        this.blinkElapsed = 0
+        this.animations.hurt.reset()
+        this.graphics.use(this.animations.hurt)
+        this.graphics.opacity = 0.25
+        break
+      case 'dead':
+        this.vel = ex.Vector.Zero
+        this.scene?.engine.goToScene('gameover')
+        break
+    }
   }
 
   takeDamage(): void {
-    if (this.invulnerabilityMs > 0 || this.lives <= 0) {
+    if (this.state === 'hurt' || this.state === 'dead') {
       return
     }
 
     this.lives -= 1
     this.onLivesChanged?.(this.lives)
-    this.invulnerabilityMs = PLAYER_INVULNERABILITY_MS
-    this.hurtMs = PLAYER_HURT_MS
-    this.blinkMs = 0
-    this.graphics.opacity = 0.25
-
-    if (this.lives === 0) {
-      this.scene?.engine.goToScene('gameover')
-    }
+    this.setState(this.lives === 0 ? 'dead' : 'hurt')
   }
 
   private handleShooting(engine: ex.Engine): void {
