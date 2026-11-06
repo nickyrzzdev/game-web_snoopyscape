@@ -1,9 +1,6 @@
 import * as ex from 'excalibur'
-<<<<<<< HEAD
 import { Enemy } from '../actors/Enemy'
-=======
 import { Resources } from '../assets/resources'
->>>>>>> origin/main
 import { Player } from '../actors/Player'
 import { Hud } from '../ui/Hud'
 import { INITIAL_SCORE, PLAYER_MAX_HEALTH } from '../config/constants'
@@ -68,7 +65,6 @@ export class GameScene extends ex.Scene {
       room.playerSpawn.col * room.tileSize + room.tileSize / 2,
       room.playerSpawn.row * room.tileSize + room.tileSize / 2,
     )
-<<<<<<< HEAD
     if (!this.player) {
       this.hud = new Hud()
       this.add(this.hud)
@@ -105,7 +101,6 @@ export class GameScene extends ex.Scene {
         width: doorSize,
         height: doorSize,
         color: ex.Color.fromHex('#71432c'),
-=======
     const assetPreview = new ex.Actor({
       pos: ex.vec(480, 270),
       width: 64,
@@ -119,7 +114,6 @@ export class GameScene extends ex.Scene {
         width: 64,
         height: 64,
         color: ex.Color.fromHex('#ef4444'),
->>>>>>> origin/main
         collisionType: ex.CollisionType.Fixed,
         z: 1,
       })
