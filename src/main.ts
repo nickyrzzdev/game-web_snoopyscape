@@ -10,6 +10,7 @@ export const game = new ex.Engine({
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   displayMode: ex.DisplayMode.FitScreen,
+  pixelArt: true,
   backgroundColor: ex.Color.fromHex('#151821'),
   physics: {
     solver: ex.SolverStrategy.Arcade,
