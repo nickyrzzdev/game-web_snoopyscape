@@ -1,8 +1,8 @@
 import * as ex from 'excalibur'
 import { BULLET_LIFETIME_MS, BULLET_SPEED } from '../config/constants'
 import { playerBullet } from '../config/collisionGroups'
-import { createBoneSprite } from '../assets/sprites'
 import { Enemy } from './Enemy'
+import { createBoneSprite } from '../assets/sprites'
 
 export class Bullet extends ex.Actor {
   damage = 1
@@ -12,18 +12,21 @@ export class Bullet extends ex.Actor {
     super({
       pos: origin.clone(),
       radius: 4,
+      color: ex.Color.Yellow,
       vel: direction.clone().scale(BULLET_SPEED),
       collisionType: ex.CollisionType.Passive,
       collisionGroup: playerBullet,
     })
 
     this.rotation = this.vel.toAngle()
+
     this.on('collisionstart', (event) => {
-      const owner = event.other?.owner
-      if (owner instanceof Enemy) {
-        owner.takeDamage(this.damage)
-      }
-      this.kill()
+      const enemy = event.other.owner as Enemy
+
+if (enemy instanceof Enemy) {
+  enemy.takeDamage(this.damage)
+  this.kill()
+}
     })
   }
 
@@ -31,7 +34,10 @@ export class Bullet extends ex.Actor {
     this.graphics.use(createBoneSprite())
   }
 
-  override onPreUpdate(engine: ex.Engine, elapsed: number): void {
+  override onPreUpdate(
+    engine: ex.Engine,
+    elapsed: number,
+  ): void {
     this.age += elapsed
 
     if (
