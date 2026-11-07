@@ -3,7 +3,10 @@ import { ENEMY_COLLIDER, ENEMY_GRAPHIC_OFFSET_Y, createEnemySprites, enemyViewFo
 import type { EnemySprites } from '../assets/sprites';
 import { EnemyBullet } from './EnemyBullet';
 import { createFireState, stepEnemyFire } from '../systems/enemyFire';
+import { findPath } from '../world/RoomGenerator';
 import type { Room } from '../world/RoomGenerator';
+import { enemy } from '../config/collisionGroups';
+
 
 export interface EnemyOptions {
   pos: Vector;
@@ -31,14 +34,17 @@ export class Enemy extends Actor {
   private bullets = new Set<EnemyBullet>();
   health: number;
   readonly scoreValue: number;
+  private path: { col: number; row: number }[] = []
+  private pathTimer = 0
 
   constructor(private readonly o: EnemyOptions) {
     super({
-      pos: o.pos.clone(),
-      width: ENEMY_COLLIDER.width,
-      height: ENEMY_COLLIDER.height,
-      collisionType: CollisionType.Active,
-    });
+    pos: o.pos.clone(),
+    width: ENEMY_COLLIDER.width,
+    height: ENEMY_COLLIDER.height,
+    collisionType: CollisionType.Active,
+    collisionGroup: enemy,
+  });
     this.health = ENEMY_HEALTH[o.type] ?? 1
     this.scoreValue = this.health * 10
   }
@@ -54,45 +60,96 @@ export class Enemy extends Actor {
     })
   }
 
-  override onPreUpdate(_engine: Engine, delta: number): void {
-    const dx = this.o.target.pos.x - this.pos.x
-    const dy = this.o.target.pos.y - this.pos.y
-    const distance = Math.hypot(dx, dy)
-    const speed = distance > 1 ? this.o.enemySpeed / distance : 0
-    this.vel.setTo(dx * speed, dy * speed)
-
-    const { view, flip } = enemyViewFor(dx, dy)
-    const sprite = this.sprites[view]
-    if (this.graphics.current !== sprite) this.graphics.use(sprite)
-    this.graphics.flipHorizontal = flip
-
-    const shot = stepEnemyFire(this.fire, {
-      dtMs: delta,
-      enemyPos: this.pos,
-      playerPos: this.o.target.pos,
-      enemyFireCooldownMs: this.o.enemyFireCooldownMs,
-      room: this.o.room,
-      activeEnemyBullets: this.bullets.size,
-    });
-    if (shot && this.scene) {
-      const b = new EnemyBullet({
-        pos: this.pos.clone(),
-        dir: shot,
-        speed: this.o.enemyBulletSpeed,
-        target: this.o.target,
-        room: this.o.room,
-        onHitPlayer: () => this.o.onPlayerHit?.(),
-      });
-      this.bullets.add(b);
-      b.on('kill', () => this.bullets.delete(b));
-      this.scene.add(b);
-    }
-  }
-
   takeDamage(damage: number): void {
-    this.health = Math.max(0, this.health - damage)
-    if (this.health === 0) {
-      this.kill()
+  this.health -= damage
+
+  if (this.health <= 0) {
+    this.kill()
+  }
+}
+
+  override onPreUpdate(_engine: Engine, delta: number): void {
+  this.pathTimer -= delta
+
+  if (this.pathTimer <= 0) {
+    this.pathTimer = 200
+
+    this.path = findPath(
+      this.o.room,
+      this.pos,
+      this.o.target.pos,
+    )
+  }
+
+  let dx = this.o.target.pos.x - this.pos.x
+  let dy = this.o.target.pos.y - this.pos.y
+
+  if (this.path.length > 0) {
+    const next = this.path[0]
+
+    const targetX =
+      next.col * this.o.room.tileSize +
+      this.o.room.tileSize / 2
+
+    const targetY =
+      next.row * this.o.room.tileSize +
+      this.o.room.tileSize / 2
+
+    dx = targetX - this.pos.x
+    dy = targetY - this.pos.y
+
+    const distanceToTile = Math.hypot(dx, dy)
+
+    if (distanceToTile < 4) {
+      this.path.shift()
     }
   }
+
+  const distance = Math.hypot(dx, dy)
+
+  const speed = distance > 1
+    ? this.o.enemySpeed / distance
+    : 0
+
+  this.vel.setTo(
+    dx * speed,
+    dy * speed,
+  )
+
+  const { view, flip } = enemyViewFor(dx, dy)
+
+  const sprite = this.sprites[view]
+
+  if (this.graphics.current !== sprite) {
+    this.graphics.use(sprite)
+  }
+
+  this.graphics.flipHorizontal = flip
+
+  const shot = stepEnemyFire(this.fire, {
+    dtMs: delta,
+    enemyPos: this.pos,
+    playerPos: this.o.target.pos,
+    enemyFireCooldownMs: this.o.enemyFireCooldownMs,
+    room: this.o.room,
+    activeEnemyBullets: this.bullets.size,
+  })
+
+  if (shot && this.scene) {
+    const b = new EnemyBullet({
+      pos: this.pos.clone(),
+      dir: shot,
+      speed: this.o.enemyBulletSpeed,
+      target: this.o.target,
+      room: this.o.room,
+      onHitPlayer: () => this.o.onPlayerHit?.(),
+    })
+
+    this.bullets.add(b)
+
+    b.on('kill', () => this.bullets.delete(b))
+
+    this.scene.add(b)
+  }
+}
 }

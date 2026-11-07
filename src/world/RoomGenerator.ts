@@ -14,6 +14,125 @@ export interface Room {
   entrySide: Side;
   playerSpawn: Cell;
 }
+export function findPath(
+  room: Room,
+  start: Vec,
+  target: Vec,
+): Cell[] {
+  const startCol = Math.floor(start.x / room.tileSize)
+  const startRow = Math.floor(start.y / room.tileSize)
+
+  const targetCol = Math.floor(target.x / room.tileSize)
+  const targetRow = Math.floor(target.y / room.tileSize)
+
+  if (
+    startCol < 0 ||
+    startRow < 0 ||
+    startCol >= room.cols ||
+    startRow >= room.rows ||
+    targetCol < 0 ||
+    targetRow < 0 ||
+    targetCol >= room.cols ||
+    targetRow >= room.rows
+  ) {
+    return []
+  }
+
+  if (room.walls[startRow]?.[startCol]) {
+    return []
+  }
+
+  if (room.walls[targetRow]?.[targetCol]) {
+    return []
+  }
+
+  const startKey = `${startCol},${startRow}`
+  const targetKey = `${targetCol},${targetRow}`
+
+  const queue: Cell[] = [
+    {
+      col: startCol,
+      row: startRow,
+    },
+  ]
+
+  const visited = new Set<string>()
+  const previous = new Map<string, Cell>()
+
+  visited.add(startKey)
+
+  const directions = [
+    { col: 1, row: 0 },
+    { col: -1, row: 0 },
+    { col: 0, row: 1 },
+    { col: 0, row: -1 },
+  ]
+
+  while (queue.length > 0) {
+    const current = queue.shift()!
+
+    const currentKey = `${current.col},${current.row}`
+
+    if (currentKey === targetKey) {
+      const path: Cell[] = []
+      let currentKeyRebuild = targetKey
+
+      while (currentKeyRebuild !== startKey) {
+        const [col, row] = currentKeyRebuild.split(',').map(Number)
+
+        path.unshift({
+          col,
+          row,
+        })
+
+        const previousCell = previous.get(currentKeyRebuild)
+
+        if (!previousCell) {
+          return []
+        }
+
+        currentKeyRebuild = `${previousCell.col},${previousCell.row}`
+      }
+
+      return path
+    }
+
+    for (const direction of directions) {
+      const nextCol = current.col + direction.col
+      const nextRow = current.row + direction.row
+
+      if (
+        nextCol < 0 ||
+        nextRow < 0 ||
+        nextCol >= room.cols ||
+        nextRow >= room.rows
+      ) {
+        continue
+      }
+
+      if (room.walls[nextRow][nextCol]) {
+        continue
+      }
+
+      const nextKey = `${nextCol},${nextRow}`
+
+      if (visited.has(nextKey)) {
+        continue
+      }
+
+      visited.add(nextKey)
+
+      previous.set(nextKey, current)
+
+      queue.push({
+        col: nextCol,
+        row: nextRow,
+      })
+    }
+  }
+
+  return []
+}
 
 export interface RoomOptions {
   entrySide?: Side;

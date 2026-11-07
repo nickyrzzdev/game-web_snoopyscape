@@ -14,10 +14,12 @@ export class GameScene extends ex.Scene {
   private player?: Player
   private hud?: Hud
   private tileMap?: ex.TileMap
+  private enemies: Enemy[] = []
   private lockedDoors: ex.Actor[] = []
   private portals: ex.Actor[] = []
   private exitsOpen = false
   private changingRoom = false
+  
 
   override onActivate(): void {
     this.clear()
@@ -27,6 +29,7 @@ export class GameScene extends ex.Scene {
     this.player = undefined
     this.hud = undefined
     this.tileMap = undefined
+    this.enemies = []
     this.lockedDoors = []
     this.portals = []
     this.exitsOpen = false
@@ -45,10 +48,19 @@ export class GameScene extends ex.Scene {
     }
   }
 
-  onEnemyKilled(enemy: Enemy): void {
-    this.score += enemy.scoreValue
-    this.hud?.setScore(this.score)
+ onEnemyKilled(enemy: Enemy): void {
+  this.score += enemy.scoreValue
+
+  this.hud?.setScore(this.score)
+
+  this.enemies = this.enemies.filter(
+    (item) => item !== enemy,
+  )
+
+  if (this.enemies.length === 0) {
+    this.onRoomCleared()
   }
+}
 
   onRoomCleared(): void {
     this.openExits()
@@ -81,9 +93,109 @@ export class GameScene extends ex.Scene {
     this.hud?.setLevel(this.level)
 
     this.addLockedDoors(room)
-    // Erick deve chamar este método quando a onda terminar.
-    this.onRoomCleared()
+    
+    this.createEnemies(room)
   }
+
+private getEnemySpawnCells(
+  room: Room,
+  amount: number,
+): { col: number; row: number }[] {
+  if (!this.player) {
+    return []
+  }
+
+  const playerCol = room.playerSpawn.col
+  const playerRow = room.playerSpawn.row
+
+  const candidates: { col: number; row: number }[] = []
+
+  for (let row = 1; row < room.rows - 1; row++) {
+    for (let col = 1; col < room.cols - 1; col++) {
+
+  
+      if (room.walls[row][col]) {
+        continue
+      }
+
+      
+      const distance = Math.hypot(
+        col - playerCol,
+        row - playerRow,
+      )
+
+      if (distance < 5) {
+        continue
+      }
+
+      candidates.push({ col, row })
+    }
+  }
+
+  
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+
+    const temp = candidates[i]
+    candidates[i] = candidates[j]
+    candidates[j] = temp
+  }
+
+  return candidates.slice(0, amount)
+}
+
+  private createEnemies(room: Room): void {
+  if (!this.player) {
+    return
+  }
+
+  const enemyTypes = [
+    'lobo_escuro',
+    'lobo_verde',
+    'lobo_marrom',
+    'tubarao_cinza',
+    'tubarao_azul',
+    'tubarao_verde',
+  ]
+
+  const enemyCount = Math.min(2 + this.level, 6)
+
+  const spawnCells = this.getEnemySpawnCells(
+    room,
+    enemyCount,
+  )
+
+  for (let i = 0; i < spawnCells.length; i++) {
+    const cell = spawnCells[i]
+
+    const position = ex.vec(
+      cell.col * room.tileSize + room.tileSize / 2,
+      cell.row * room.tileSize + room.tileSize / 2,
+    )
+
+    const enemy = new Enemy({
+      pos: position,
+      type: enemyTypes[i % enemyTypes.length],
+      target: this.player,
+      room: room,
+      enemySpeed: 60,
+      enemyBulletSpeed: 200,
+      enemyFireCooldownMs: 1000,
+
+      onPlayerHit: () => {
+  this.player?.takeDamage()
+},
+    })
+
+    // Quando esse inimigo morrer:
+    enemy.on('kill', () => {
+      this.onEnemyKilled(enemy)
+    })
+
+    this.enemies.push(enemy)
+    this.add(enemy)
+  }
+}
 
   private addLockedDoors(room: Room): void {
     const width = room.cols * room.tileSize
